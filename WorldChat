@@ -330,7 +330,7 @@ local lastProcessedMsgId = nil
 local isFirstLoad = true
 
 local function syncFromDiscord()
-    local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages?limit=10"
+    local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages?limit=15"
     local req = (syn and syn.request) or http_request or request
     if not req then return end
 
@@ -338,15 +338,19 @@ local function syncFromDiscord()
         return req({Url = url, Method = "GET", Headers = {["Authorization"] = "Bot " .. BOT_TOKEN}}) 
     end)
     
-    if success and res.StatusCode == 200 then
+    if success and res and res.StatusCode == 200 then
         local messages = HttpService:JSONDecode(res.Body)
-        if #messages == 0 then return end
+        if not messages or #messages == 0 then return end
+        
+        table.sort(messages, function(a, b)
+            return a.id < b.id
+        end)
         
         if isFirstLoad then
             isFirstLoad = false
-            lastProcessedMsgId = messages[1].id
-            for i = #messages, 1, -1 do
-                local msg = messages[i]
+            lastProcessedMsgId = messages[#messages].id
+            for _, msg in ipairs(messages) do
+                local content = msg.content or ""
                 if msg.embeds and msg.embeds[1] and msg.embeds[1].description then
                     local rawText = msg.embeds[1].description
                     if string.find(rawText, "|") then
@@ -355,35 +359,32 @@ local function syncFromDiscord()
                             addTerminalLog(parts[2]:gsub("[%[%]]", ""), parts[3], parts[4], parts[5], parts[1]:gsub("[%[%]]", ""), false)
                         end
                     end
+                elseif content ~= "" and not (msg.author and msg.author.bot) then
+                    addTerminalLog("ADMIN", "🔨", msg.author.username, content, nil, true)
                 end
             end
             return
         end
 
-        if messages[1].id ~= lastProcessedMsgId then
-            for i = #messages, 1, -1 do
-                local msg = messages[i]
+        for _, msg in ipairs(messages) do
+            if lastProcessedMsgId == nil or msg.id > lastProcessedMsgId then
+                lastProcessedMsgId = msg.id
+                local content = msg.content or ""
                 
-                if lastProcessedMsgId == nil or msg.id > lastProcessedMsgId then
-                    local content = msg.content or ""
-                    
-                    if content:lower() == "/clear" then
-                        clearChatUI()
-                    elseif msg.embeds and msg.embeds[1] and msg.embeds[1].description then
-                        local rawText = msg.embeds[1].description
-                        if string.find(rawText, "|") then
-                            local parts = string.split(rawText, "|")
-                            if #parts >= 5 then
-                                addTerminalLog(parts[2]:gsub("[%[%]]", ""), parts[3], parts[4], parts[5], parts[1]:gsub("[%[%]]", ""), false)
-                            end
+                if content:lower() == "/clear" then
+                    clearChatUI()
+                elseif msg.embeds and msg.embeds[1] and msg.embeds[1].description then
+                    local rawText = msg.embeds[1].description
+                    if string.find(rawText, "|") then
+                        local parts = string.split(rawText, "|")
+                        if #parts >= 5 then
+                            addTerminalLog(parts[2]:gsub("[%[%]]", ""), parts[3], parts[4], parts[5], parts[1]:gsub("[%[%]]", ""), false)
                         end
-                    elseif content ~= "" and not msg.author.bot then
-                        local authorName = msg.author.username
-                        addTerminalLog("ADMIN", "🔨", authorName, content, nil, true)
                     end
+                elseif content ~= "" and not (msg.author and msg.author.bot) then
+                    addTerminalLog("ADMIN", "🔨", msg.author.username, content, nil, true)
                 end
             end
-            lastProcessedMsgId = messages[1].id
         end
     end
 end
@@ -434,4 +435,4 @@ WorldChatToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("--> Updated: Grouped (5-10 chars) & Obfuscated Token!")
+print("--> Updated: Fixed Discord Sync & Fully Obfuscated!")
