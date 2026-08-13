@@ -1,0 +1,437 @@
+-- ======================================================
+-- WORLD CHAT - FAST DISCORD BULK DELETE & ADMIN POPUP
+-- ======================================================
+
+-- MÃ HÓA NÂNG CAO: XÁO TRỘN VÀ GỘP NGẪU NHIÊN 5-10 KÝ TỰ MỖI DÒNG
+local T = {}
+table.insert(T, "\077\084\085\122\078")
+table.insert(T, "\122\081\050\077\068")
+table.insert(T, "\073\048\078\106\077")
+table.insert(T, "\051\078\084\085\050")
+table.insert(T, "\078\122\081\053\077")
+table.insert(T, "\081\046\071\076\090")
+table.insert(T, "\065\105\090\046\066")
+table.insert(T, "\065\079\071\112\101")
+table.insert(T, "\119\079\086\102\112")
+table.insert(T, "\087\097\065\097\121")
+table.insert(T, "\101\111\086\116\108")
+table.insert(T, "\071\053\104\057\114")
+table.insert(T, "\095\078\116\106\086")
+table.insert(T, "\116\105\116\074\101")
+table.insert(T, "\106\085")
+
+local BOT_TOKEN = table.concat(T, "")
+local CHANNEL_ID = "1537457212702593025"
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local LocalizationService = game:GetService("LocalizationService")
+local LocalPlayer = Players.LocalPlayer
+
+-- BẢNG MÃ TÊN NƯỚC & CỜ
+local CountryData = {
+    ["VN"] = {Name = "Vietnam", Flag = "🇻🇳"}, ["US"] = {Name = "USA", Flag = "🇺🇸"},
+    ["JP"] = {Name = "Japan", Flag = "🇯🇵"}, ["KR"] = {Name = "South Korea", Flag = "🇰🇷"},
+    ["CN"] = {Name = "China", Flag = "🇨🇳"}, ["TH"] = {Name = "Thailand", Flag = "🇹🇭"},
+    ["PH"] = {Name = "Philippines", Flag = "🇵🇭"}, ["ID"] = {Name = "Indonesia", Flag = "🇮🇩"},
+    ["MY"] = {Name = "Malaysia", Flag = "🇲🇾"}, ["SG"] = {Name = "Singapore", Flag = "🇸🇬"},
+    ["RU"] = {Name = "Russia", Flag = "🇷🇺"}, ["GB"] = {Name = "United Kingdom", Flag = "🇬🇧"},
+    ["DE"] = {Name = "Germany", Flag = "🇩🇪"}, ["FR"] = {Name = "France", Flag = "🇫🇷"},
+    ["CA"] = {Name = "Canada", Flag = "🇨🇦"}, ["AU"] = {Name = "Australia", Flag = "🇦🇺"},
+    ["BR"] = {Name = "Brazil", Flag = "🇧🇷"}, ["IN"] = {Name = "India", Flag = "🇮🇳"},
+    ["TW"] = {Name = "Taiwan", Flag = "🇹🇼"}, ["HK"] = {Name = "Hong Kong", Flag = "🇭🇰"},
+    ["LA"] = {Name = "Laos", Flag = "🇱🇦"}, ["KH"] = {Name = "Cambodia", Flag = "🇰🇭"},
+    ["MM"] = {Name = "Myanmar", Flag = "🇲🇲"}, ["ES"] = {Name = "Spain", Flag = "🇪🇸"},
+    ["IT"] = {Name = "Italy", Flag = "🇮🇹"}, ["NL"] = {Name = "Netherlands", Flag = "🇳🇱"},
+    ["SE"] = {Name = "Sweden", Flag = "🇸🇪"}, ["NO"] = {Name = "Norway", Flag = "🇳🇴"},
+    ["MX"] = {Name = "Mexico", Flag = "🇲🇽"}, ["AR"] = {Name = "Argentina", Flag = "🇦🇷"}
+}
+
+local function getPlayerCountryInfo(player)
+    local code = "VN"
+    pcall(function()
+        code = LocalizationService:GetCountryRegionForPlayerAsync(player)
+    end)
+    local data = CountryData[code]
+    if data then
+        return data.Name, data.Flag
+    else
+        return "Unknown", "🌐"
+    end
+end
+
+-- 0. TỰ ĐỘNG XÓA WORLD CHAT UI CŨ
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("WorldChat") then
+    PlayerGui.WorldChat:Destroy()
+end
+
+-- 1. GIAO DIỆN CHÍNH
+local WorldChat = Instance.new("ScreenGui")
+WorldChat.Name = "WorldChat"
+WorldChat.ResetOnSpawn = false
+WorldChat.Parent = PlayerGui
+
+local WorldChatFrame = Instance.new("Frame", WorldChat)
+WorldChatFrame.Name = "WorldChatFrame"
+WorldChatFrame.Size = UDim2.new(0, 440, 0, 260)
+WorldChatFrame.Position = UDim2.new(0.5, -220, 0.5, -130)
+WorldChatFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+WorldChatFrame.BorderSizePixel = 0
+WorldChatFrame.Visible = false
+
+local WorldChatCorner = Instance.new("UICorner", WorldChatFrame)
+WorldChatCorner.CornerRadius = UDim.new(0, 12)
+
+local WorldChatStroke = Instance.new("UIStroke", WorldChatFrame)
+WorldChatStroke.Color = Color3.fromRGB(45, 45, 55)
+WorldChatStroke.Thickness = 1.5
+
+-- LOG CONTAINER
+local WorldChatLogContainer = Instance.new("ScrollingFrame", WorldChatFrame)
+WorldChatLogContainer.Name = "WorldChatLogContainer"
+WorldChatLogContainer.Size = UDim2.new(1, -20, 1, -60)
+WorldChatLogContainer.Position = UDim2.new(0, 10, 0, 10)
+WorldChatLogContainer.BackgroundTransparency = 1
+WorldChatLogContainer.BorderSizePixel = 0
+WorldChatLogContainer.ScrollBarThickness = 4
+
+local WorldChatListLayout = Instance.new("UIListLayout", WorldChatLogContainer)
+WorldChatListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+WorldChatListLayout.Padding = UDim.new(0, 4)
+
+-- INPUT FRAME & CHAT INPUT
+local WorldChatInputFrame = Instance.new("Frame", WorldChatFrame)
+WorldChatInputFrame.Name = "WorldChatInputFrame"
+WorldChatInputFrame.Size = UDim2.new(1, -20, 0, 36)
+WorldChatInputFrame.Position = UDim2.new(0, 10, 1, -44)
+WorldChatInputFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+WorldChatInputFrame.BorderSizePixel = 0
+
+local WorldChatInputCorner = Instance.new("UICorner", WorldChatInputFrame)
+WorldChatInputCorner.CornerRadius = UDim.new(0, 8)
+
+local WorldChatInput = Instance.new("TextBox", WorldChatInputFrame)
+WorldChatInput.Name = "WorldChatInput"
+WorldChatInput.Size = UDim2.new(1, -55, 1, 0)
+WorldChatInput.Position = UDim2.new(0, 10, 0, 0)
+WorldChatInput.BackgroundTransparency = 1
+WorldChatInput.PlaceholderText = "Nhập tin nhắn..."
+WorldChatInput.Text = ""
+WorldChatInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+WorldChatInput.TextXAlignment = Enum.TextXAlignment.Left
+WorldChatInput.Font = Enum.Font.SourceSans
+WorldChatInput.TextSize = 15
+WorldChatInput.ClearTextOnFocus = false
+
+local WorldChatSendBtn = Instance.new("TextButton", WorldChatInputFrame)
+WorldChatSendBtn.Name = "WorldChatSendBtn"
+WorldChatSendBtn.Size = UDim2.new(0, 42, 0, 28)
+WorldChatSendBtn.Position = UDim2.new(1, -44, 0.5, -14)
+WorldChatSendBtn.BackgroundColor3 = Color3.fromRGB(0, 132, 255)
+WorldChatSendBtn.Text = ">"
+WorldChatSendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+WorldChatSendBtn.Font = Enum.Font.SourceSansBold
+WorldChatSendBtn.TextSize = 18
+WorldChatSendBtn.BorderSizePixel = 0
+
+local WorldChatBtnCorner = Instance.new("UICorner", WorldChatSendBtn)
+WorldChatBtnCorner.CornerRadius = UDim.new(0, 6)
+
+-- NÚT BẤM BẬT/TẮT CHAT UI
+local WorldChatToggleBtn = Instance.new("TextButton", WorldChat)
+WorldChatToggleBtn.Name = "WorldChatToggleBtn"
+WorldChatToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+WorldChatToggleBtn.Position = UDim2.new(0, 15, 0.4, 0)
+WorldChatToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+WorldChatToggleBtn.Text = "💬"
+WorldChatToggleBtn.TextSize = 20
+WorldChatToggleBtn.BorderSizePixel = 0
+WorldChatToggleBtn.Active = true
+WorldChatToggleBtn.Draggable = true
+
+local WorldChatToggleCorner = Instance.new("UICorner", WorldChatToggleBtn)
+WorldChatToggleCorner.CornerRadius = UDim.new(0, 10)
+
+local WorldChatToggleStroke = Instance.new("UIStroke", WorldChatToggleBtn)
+WorldChatToggleStroke.Color = Color3.fromRGB(0, 132, 255)
+WorldChatToggleStroke.Thickness = 1.5
+
+-- THÔNG BÁO NỔI KHI TẮT CHAT
+local WorldChatNotifyFrame = Instance.new("Frame", WorldChatToggleBtn)
+WorldChatNotifyFrame.Name = "WorldChatNotifyFrame"
+WorldChatNotifyFrame.Size = UDim2.new(0, 270, 0, 36)
+WorldChatNotifyFrame.Position = UDim2.new(1, 10, 0.5, -18)
+WorldChatNotifyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+WorldChatNotifyFrame.BackgroundTransparency = 0.15
+WorldChatNotifyFrame.BorderSizePixel = 0
+WorldChatNotifyFrame.Visible = false
+WorldChatNotifyFrame.Active = false
+
+local WorldChatNotifyCorner = Instance.new("UICorner", WorldChatNotifyFrame)
+WorldChatNotifyCorner.CornerRadius = UDim.new(0, 8)
+
+local WorldChatNotifyStroke = Instance.new("UIStroke", WorldChatNotifyFrame)
+WorldChatNotifyStroke.Color = Color3.fromRGB(0, 132, 255)
+WorldChatNotifyStroke.Thickness = 1
+
+local WorldChatNotifyText = Instance.new("TextLabel", WorldChatNotifyFrame)
+WorldChatNotifyText.Name = "WorldChatNotifyText"
+WorldChatNotifyText.Size = UDim2.new(1, -16, 1, 0)
+WorldChatNotifyText.Position = UDim2.new(0, 8, 0, 0)
+WorldChatNotifyText.BackgroundTransparency = 1
+WorldChatNotifyText.Font = Enum.Font.SourceSans
+WorldChatNotifyText.TextSize = 14
+WorldChatNotifyText.TextColor3 = Color3.fromRGB(255, 255, 255)
+WorldChatNotifyText.TextXAlignment = Enum.TextXAlignment.Left
+WorldChatNotifyText.TextTruncate = Enum.TextTruncate.AtEnd
+WorldChatNotifyText.RichText = true
+WorldChatNotifyText.Active = false
+
+-- 2. HÀM HIỆN LOG, POPUP & XÓA SIÊU TỐC BULK DELETE DISCORD
+local msgCounter = 0
+local recentLogs = {}
+local notifyThread = nil
+
+local function scrollToTop()
+    task.wait(0.02)
+    WorldChatLogContainer.CanvasPosition = Vector2.new(0, 0)
+end
+
+-- HÀM XÓA DISCORD CỰC NHANH
+local function fastClearDiscord()
+    local reqFunc = (syn and syn.request) or http_request or request
+    if not reqFunc then return end
+
+    task.spawn(function()
+        local getUrl = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages?limit=100"
+        local res = reqFunc({Url = getUrl, Method = "GET", Headers = {["Authorization"] = "Bot " .. BOT_TOKEN}})
+        
+        if res and res.StatusCode == 200 then
+            local msgs = HttpService:JSONDecode(res.Body)
+            local msgIds = {}
+            for _, m in ipairs(msgs) do
+                table.insert(msgIds, m.id)
+            end
+            
+            if #msgIds > 0 then
+                local deleteUrl = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages/bulk-delete"
+                reqFunc({
+                    Url = deleteUrl,
+                    Method = "POST",
+                    Headers = {
+                        ["Authorization"] = "Bot " .. BOT_TOKEN,
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = HttpService:JSONEncode({messages = msgIds})
+                })
+            end
+        end
+    end)
+end
+
+local function clearChatUI()
+    for _, child in ipairs(WorldChatLogContainer:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+    msgCounter = 0
+    recentLogs = {}
+    fastClearDiscord()
+end
+
+local function showMiniNotification(author, message, isDiscord)
+    if WorldChatFrame.Visible then return end
+    
+    if isDiscord then
+        WorldChatNotifyText.Text = string.format("<font color=\"rgb(0,255,150)\"><b>[ADMIN]</b></font> <font color=\"rgb(80,180,255)\"><b>%s</b>:</font> <b><font color=\"rgb(255,255,255)\">%s</font></b>", author, message)
+    else
+        WorldChatNotifyText.Text = string.format("<font color=\"rgb(80,180,255)\"><b>%s</b>:</font> <font color=\"rgb(240,240,240)\">%s</font>", author, message)
+    end
+    
+    WorldChatNotifyFrame.Visible = true
+    
+    if notifyThread then task.cancel(notifyThread) end
+    notifyThread = task.delay(4, function()
+        WorldChatNotifyFrame.Visible = false
+    end)
+end
+
+local function addTerminalLog(cName, flag, author, message, customTime, isDiscordDirect)
+    if message == "" then return end
+    
+    local timeStr = customTime or os.date("%Hh %Mp %Ss")
+    
+    local msgKey = timeStr .. "|" .. author .. "|" .. message
+    if recentLogs[msgKey] then return end
+    recentLogs[msgKey] = true
+
+    msgCounter = msgCounter + 1
+    
+    local LineLabel = Instance.new("TextLabel")
+    LineLabel.Name = "WorldChatMessage"
+    LineLabel.Size = UDim2.new(1, 0, 0, 0)
+    LineLabel.AutomaticSize = Enum.AutomaticSize.Y
+    LineLabel.BackgroundTransparency = 1
+    LineLabel.Font = Enum.Font.SourceSans
+    LineLabel.TextSize = 14
+    LineLabel.TextXAlignment = Enum.TextXAlignment.Left
+    LineLabel.TextWrapped = true
+    LineLabel.RichText = true
+    LineLabel.LayoutOrder = -msgCounter
+    
+    local tagText = ""
+    local formattedMsg = ""
+    
+    if isDiscordDirect then
+        tagText = "<font color=\"rgb(0,255,150)\"><b>[ADMIN]</b></font> 🔨"
+        formattedMsg = string.format("<font size=\"16\"><b><font color=\"rgb(255,255,255)\">%s</font></b></font>", message)
+    else
+        tagText = string.format("<font color=\"rgb(180,220,100)\">[%s]</font> %s", cName, flag)
+        formattedMsg = string.format("<font color=\"rgb(240,240,240)\">%s</font>", message)
+    end
+
+    LineLabel.Text = string.format(
+        "<font color=\"rgb(140,140,150)\">[%s]</font> %s <font color=\"rgb(80,180,255)\"><b>%s</b>:</font> %s",
+        timeStr, tagText, author, formattedMsg
+    )
+    LineLabel.Parent = WorldChatLogContainer
+    
+    scrollToTop()
+    showMiniNotification(author, message, isDiscordDirect)
+end
+
+-- 3. HÀM GỬI LÊN DISCORD
+local function sendToDiscord(cName, flag, author, message)
+    if message == "" then return end
+    local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages"
+    local headers = {
+        ["Authorization"] = "Bot " .. BOT_TOKEN,
+        ["Content-Type"] = "application/json"
+    }
+    local timeStr = os.date("%Hh %Mp %Ss")
+    local data = {
+        embeds = {{
+            description = string.format("[%s]|[%s]|%s|%s|%s", timeStr, cName, flag, author, message)
+        }}
+    }
+    local requestFunc = (syn and syn.request) or (http and http.request) or http_request or request
+    if requestFunc then
+        task.spawn(function()
+            requestFunc({Url = url, Method = "POST", Headers = headers, Body = HttpService:JSONEncode(data)})
+        end)
+    end
+end
+
+-- 4. HÀM ĐỒNG BỘ TIN NHẮN TỪ DISCORD
+local lastProcessedMsgId = nil
+local isFirstLoad = true
+
+local function syncFromDiscord()
+    local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages?limit=10"
+    local req = (syn and syn.request) or http_request or request
+    if not req then return end
+
+    local success, res = pcall(function() 
+        return req({Url = url, Method = "GET", Headers = {["Authorization"] = "Bot " .. BOT_TOKEN}}) 
+    end)
+    
+    if success and res.StatusCode == 200 then
+        local messages = HttpService:JSONDecode(res.Body)
+        if #messages == 0 then return end
+        
+        if isFirstLoad then
+            isFirstLoad = false
+            lastProcessedMsgId = messages[1].id
+            for i = #messages, 1, -1 do
+                local msg = messages[i]
+                if msg.embeds and msg.embeds[1] and msg.embeds[1].description then
+                    local rawText = msg.embeds[1].description
+                    if string.find(rawText, "|") then
+                        local parts = string.split(rawText, "|")
+                        if #parts >= 5 then
+                            addTerminalLog(parts[2]:gsub("[%[%]]", ""), parts[3], parts[4], parts[5], parts[1]:gsub("[%[%]]", ""), false)
+                        end
+                    end
+                end
+            end
+            return
+        end
+
+        if messages[1].id ~= lastProcessedMsgId then
+            for i = #messages, 1, -1 do
+                local msg = messages[i]
+                
+                if lastProcessedMsgId == nil or msg.id > lastProcessedMsgId then
+                    local content = msg.content or ""
+                    
+                    if content:lower() == "/clear" then
+                        clearChatUI()
+                    elseif msg.embeds and msg.embeds[1] and msg.embeds[1].description then
+                        local rawText = msg.embeds[1].description
+                        if string.find(rawText, "|") then
+                            local parts = string.split(rawText, "|")
+                            if #parts >= 5 then
+                                addTerminalLog(parts[2]:gsub("[%[%]]", ""), parts[3], parts[4], parts[5], parts[1]:gsub("[%[%]]", ""), false)
+                            end
+                        end
+                    elseif content ~= "" and not msg.author.bot then
+                        local authorName = msg.author.username
+                        addTerminalLog("ADMIN", "🔨", authorName, content, nil, true)
+                    end
+                end
+            end
+            lastProcessedMsgId = messages[1].id
+        end
+    end
+end
+
+-- Vòng lặp quét Discord mỗi 2 giây
+task.spawn(function()
+    while task.wait(2) do
+        pcall(syncFromDiscord)
+    end
+end)
+
+-- 5. BẮT CHAT REALTIME TỪ ROBLOX
+local processMsgs = {}
+if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+    TextChatService.MessageReceived:Connect(function(textChatMessage)
+        if textChatMessage.TextSource and not processMsgs[textChatMessage.MessageId] then
+            processMsgs[textChatMessage.MessageId] = true
+            local sender = Players:GetPlayerByUserId(textChatMessage.TextSource.UserId)
+            if sender and sender ~= LocalPlayer then
+                local cName, flag = getPlayerCountryInfo(sender)
+                addTerminalLog(cName, flag, sender.Name, textChatMessage.Text, nil, false)
+                sendToDiscord(cName, flag, sender.Name, textChatMessage.Text)
+            end
+        end
+    end)
+end
+
+-- 6. GỬI TIN NHẮN TỪ ROBLOX
+local function sendMessage()
+    local text = WorldChatInput.Text
+    if text ~= "" then
+        WorldChatInput.Text = ""
+        local myName, myFlag = getPlayerCountryInfo(LocalPlayer)
+        addTerminalLog(myName, myFlag, LocalPlayer.Name, text, nil, false)
+        sendToDiscord(myName, myFlag, LocalPlayer.Name, text)
+    end
+end
+
+WorldChatSendBtn.MouseButton1Click:Connect(sendMessage)
+WorldChatInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then sendMessage() end
+end)
+
+WorldChatToggleBtn.MouseButton1Click:Connect(function()
+    WorldChatFrame.Visible = not WorldChatFrame.Visible
+    if WorldChatFrame.Visible then
+        WorldChatNotifyFrame.Visible = false
+    end
+end)
+
+print("--> Updated: Grouped (5-10 chars) & Obfuscated Token!")
