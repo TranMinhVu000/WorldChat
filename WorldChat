@@ -1,8 +1,8 @@
 -- ======================================================
--- WORLD CHAT - FAST DISCORD BULK DELETE & ADMIN POPUP
+-- WORLD CHAT - OBFUSCATED URL & COPY BUTTON PER MESSAGE
 -- ======================================================
 
--- MÃ HÓA NÂNG CAO: XÁO TRỘN VÀ GỘP NGẪU NHIÊN 5-10 KÝ TỰ MỖI DÒNG
+-- MÃ HÓA TOKEN
 local T = {}
 table.insert(T, "\077\084\085\122\078")
 table.insert(T, "\122\081\050\077\068")
@@ -22,6 +22,16 @@ table.insert(T, "\106\085")
 
 local BOT_TOKEN = table.concat(T, "")
 local CHANNEL_ID = "1537457212702593025"
+
+-- MÃ HÓA LINK REPLIT NGẪU NHIÊN
+local U = {}
+table.insert(U, "https://")
+table.insert(U, "Node-Core.")
+table.insert(U, "tranminhvu000.")
+table.insert(U, "replit.")
+table.insert(U, "dev")
+
+local REPLIT_API_URL = table.concat(U, "")
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -75,8 +85,8 @@ WorldChat.Parent = PlayerGui
 
 local WorldChatFrame = Instance.new("Frame", WorldChat)
 WorldChatFrame.Name = "WorldChatFrame"
-WorldChatFrame.Size = UDim2.new(0, 440, 0, 260)
-WorldChatFrame.Position = UDim2.new(0.5, -220, 0.5, -130)
+WorldChatFrame.Size = UDim2.new(0, 460, 0, 260)
+WorldChatFrame.Position = UDim2.new(0.5, -230, 0.5, -130)
 WorldChatFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 WorldChatFrame.BorderSizePixel = 0
 WorldChatFrame.Visible = false
@@ -99,7 +109,7 @@ WorldChatLogContainer.ScrollBarThickness = 4
 
 local WorldChatListLayout = Instance.new("UIListLayout", WorldChatLogContainer)
 WorldChatListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-WorldChatListLayout.Padding = UDim.new(0, 4)
+WorldChatListLayout.Padding = UDim.new(0, 6)
 
 -- INPUT FRAME & CHAT INPUT
 local WorldChatInputFrame = Instance.new("Frame", WorldChatFrame)
@@ -189,7 +199,7 @@ WorldChatNotifyText.TextTruncate = Enum.TextTruncate.AtEnd
 WorldChatNotifyText.RichText = true
 WorldChatNotifyText.Active = false
 
--- 2. HÀM HIỆN LOG, POPUP & XÓA SIÊU TỐC BULK DELETE DISCORD
+-- 2. HÀM XÓA & HIỂN THỊ LOG KÈM NÚT SAO CHÉP
 local msgCounter = 0
 local recentLogs = {}
 local notifyThread = nil
@@ -199,7 +209,6 @@ local function scrollToTop()
     WorldChatLogContainer.CanvasPosition = Vector2.new(0, 0)
 end
 
--- HÀM XÓA DISCORD CỰC NHANH
 local function fastClearDiscord()
     local reqFunc = (syn and syn.request) or http_request or request
     if not reqFunc then return end
@@ -233,7 +242,7 @@ end
 
 local function clearChatUI()
     for _, child in ipairs(WorldChatLogContainer:GetChildren()) do
-        if child:IsA("TextLabel") then
+        if child:IsA("Frame") then
             child:Destroy()
         end
     end
@@ -263,16 +272,25 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
     if message == "" then return end
     
     local timeStr = customTime or os.date("%Hh %Mp %Ss")
-    
     local msgKey = timeStr .. "|" .. author .. "|" .. message
     if recentLogs[msgKey] then return end
     recentLogs[msgKey] = true
 
     msgCounter = msgCounter + 1
     
+    -- Tạo một dòng chứa cả Text và Nút Sao Chép
+    local RowFrame = Instance.new("Frame")
+    RowFrame.Name = "WorldChatRow"
+    RowFrame.Size = UDim2.new(1, 0, 0, 0)
+    RowFrame.AutomaticSize = Enum.AutomaticSize.Y
+    RowFrame.BackgroundTransparency = 1
+    RowFrame.LayoutOrder = -msgCounter
+    RowFrame.Parent = WorldChatLogContainer
+
     local LineLabel = Instance.new("TextLabel")
     LineLabel.Name = "WorldChatMessage"
-    LineLabel.Size = UDim2.new(1, 0, 0, 0)
+    LineLabel.Size = UDim2.new(1, -26, 1, 0)
+    LineLabel.Position = UDim2.new(0, 0, 0, 0)
     LineLabel.AutomaticSize = Enum.AutomaticSize.Y
     LineLabel.BackgroundTransparency = 1
     LineLabel.Font = Enum.Font.SourceSans
@@ -280,7 +298,7 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
     LineLabel.TextXAlignment = Enum.TextXAlignment.Left
     LineLabel.TextWrapped = true
     LineLabel.RichText = true
-    LineLabel.LayoutOrder = -msgCounter
+    LineLabel.Parent = RowFrame
     
     local tagText = ""
     local formattedMsg = ""
@@ -297,13 +315,37 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
         "<font color=\"rgb(140,140,150)\">[%s]</font> %s <font color=\"rgb(80,180,255)\"><b>%s</b>:</font> %s",
         timeStr, tagText, author, formattedMsg
     )
-    LineLabel.Parent = WorldChatLogContainer
+
+    -- Nút Copy (Hình 📋 ở cuối dòng)
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Name = "CopyBtn"
+    CopyBtn.Size = UDim2.new(0, 22, 0, 22)
+    CopyBtn.Position = UDim2.new(1, -22, 0, 1)
+    CopyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    CopyBtn.Text = "📋"
+    CopyBtn.TextSize = 12
+    CopyBtn.BorderSizePixel = 0
+    CopyBtn.Parent = RowFrame
+
+    local CopyCorner = Instance.new("UICorner", CopyBtn)
+    CopyCorner.CornerRadius = UDim.new(0, 4)
+
+    -- Xử lý sự kiện bấm nút sao chép
+    CopyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(message)
+            CopyBtn.Text = "✔"
+            task.delay(1, function()
+                CopyBtn.Text = "📋"
+            end)
+        end
+    end)
     
     scrollToTop()
     showMiniNotification(author, message, isDiscordDirect)
 end
 
--- 3. HÀM GỬI LÊN DISCORD
+-- 3. GỬI LÊN DISCORD
 local function sendToDiscord(cName, flag, author, message)
     if message == "" then return end
     local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages"
@@ -435,4 +477,4 @@ WorldChatToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("--> Updated: Fixed Discord Sync & Fully Obfuscated!")
+print("--> Updated: Copy Button (📋) added to each chat line!")
