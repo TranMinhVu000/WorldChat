@@ -2,7 +2,6 @@
 -- WORLD CHAT - OBFUSCATED URL & COPY BUTTON PER MESSAGE
 -- ======================================================
 
--- MÃ HÓA TOKEN
 local T = {}
 table.insert(T, "\077\084\085\122\078")
 table.insert(T, "\122\081\050\077\068")
@@ -23,7 +22,6 @@ table.insert(T, "\106\085")
 local BOT_TOKEN = table.concat(T, "")
 local CHANNEL_ID = "1537457212702593025"
 
--- MÃ HÓA LINK REPLIT NGẪU NHIÊN
 local U = {}
 table.insert(U, "https://")
 table.insert(U, "Node-Core.")
@@ -39,7 +37,6 @@ local TextChatService = game:GetService("TextChatService")
 local LocalizationService = game:GetService("LocalizationService")
 local LocalPlayer = Players.LocalPlayer
 
--- BẢNG MÃ TÊN NƯỚC & CỜ
 local CountryData = {
     ["VN"] = {Name = "Vietnam", Flag = "🇻🇳"}, ["US"] = {Name = "USA", Flag = "🇺🇸"},
     ["JP"] = {Name = "Japan", Flag = "🇯🇵"}, ["KR"] = {Name = "South Korea", Flag = "🇰🇷"},
@@ -71,13 +68,11 @@ local function getPlayerCountryInfo(player)
     end
 end
 
--- 0. TỰ ĐỘNG XÓA WORLD CHAT UI CŨ
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild("WorldChat") then
     PlayerGui.WorldChat:Destroy()
 end
 
--- 1. GIAO DIỆN CHÍNH
 local WorldChat = Instance.new("ScreenGui")
 WorldChat.Name = "WorldChat"
 WorldChat.ResetOnSpawn = false
@@ -98,7 +93,6 @@ local WorldChatStroke = Instance.new("UIStroke", WorldChatFrame)
 WorldChatStroke.Color = Color3.fromRGB(45, 45, 55)
 WorldChatStroke.Thickness = 1.5
 
--- LOG CONTAINER
 local WorldChatLogContainer = Instance.new("ScrollingFrame", WorldChatFrame)
 WorldChatLogContainer.Name = "WorldChatLogContainer"
 WorldChatLogContainer.Size = UDim2.new(1, -20, 1, -60)
@@ -111,7 +105,6 @@ local WorldChatListLayout = Instance.new("UIListLayout", WorldChatLogContainer)
 WorldChatListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 WorldChatListLayout.Padding = UDim.new(0, 6)
 
--- INPUT FRAME & CHAT INPUT
 local WorldChatInputFrame = Instance.new("Frame", WorldChatFrame)
 WorldChatInputFrame.Name = "WorldChatInputFrame"
 WorldChatInputFrame.Size = UDim2.new(1, -20, 0, 36)
@@ -149,7 +142,6 @@ WorldChatSendBtn.BorderSizePixel = 0
 local WorldChatBtnCorner = Instance.new("UICorner", WorldChatSendBtn)
 WorldChatBtnCorner.CornerRadius = UDim.new(0, 6)
 
--- NÚT BẤM BẬT/TẮT CHAT UI
 local WorldChatToggleBtn = Instance.new("TextButton", WorldChat)
 WorldChatToggleBtn.Name = "WorldChatToggleBtn"
 WorldChatToggleBtn.Size = UDim2.new(0, 40, 0, 40)
@@ -168,7 +160,6 @@ local WorldChatToggleStroke = Instance.new("UIStroke", WorldChatToggleBtn)
 WorldChatToggleStroke.Color = Color3.fromRGB(0, 132, 255)
 WorldChatToggleStroke.Thickness = 1.5
 
--- THÔNG BÁO NỔI KHI TẮT CHAT
 local WorldChatNotifyFrame = Instance.new("Frame", WorldChatToggleBtn)
 WorldChatNotifyFrame.Name = "WorldChatNotifyFrame"
 WorldChatNotifyFrame.Size = UDim2.new(0, 270, 0, 36)
@@ -199,7 +190,6 @@ WorldChatNotifyText.TextTruncate = Enum.TextTruncate.AtEnd
 WorldChatNotifyText.RichText = true
 WorldChatNotifyText.Active = false
 
--- 2. HÀM XÓA & HIỂN THỊ LOG KÈM NÚT SAO CHÉP
 local msgCounter = 0
 local recentLogs = {}
 local notifyThread = nil
@@ -278,7 +268,6 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
 
     msgCounter = msgCounter + 1
     
-    -- Tạo một dòng chứa cả Text và Nút Sao Chép
     local RowFrame = Instance.new("Frame")
     RowFrame.Name = "WorldChatRow"
     RowFrame.Size = UDim2.new(1, 0, 0, 0)
@@ -316,7 +305,6 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
         timeStr, tagText, author, formattedMsg
     )
 
-    -- Nút Copy (Hình 📋 ở cuối dòng)
     local CopyBtn = Instance.new("TextButton")
     CopyBtn.Name = "CopyBtn"
     CopyBtn.Size = UDim2.new(0, 22, 0, 22)
@@ -330,7 +318,6 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
     local CopyCorner = Instance.new("UICorner", CopyBtn)
     CopyCorner.CornerRadius = UDim.new(0, 4)
 
-    -- Xử lý sự kiện bấm nút sao chép
     CopyBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard(message)
@@ -345,7 +332,6 @@ local function addTerminalLog(cName, flag, author, message, customTime, isDiscor
     showMiniNotification(author, message, isDiscordDirect)
 end
 
--- 3. GỬI LÊN DISCORD
 local function sendToDiscord(cName, flag, author, message)
     if message == "" then return end
     local url = "https://discord.com/api/v10/channels/" .. CHANNEL_ID .. "/messages"
@@ -367,7 +353,6 @@ local function sendToDiscord(cName, flag, author, message)
     end
 end
 
--- 4. HÀM ĐỒNG BỘ TIN NHẮN TỪ DISCORD
 local lastProcessedMsgId = nil
 local isFirstLoad = true
 
@@ -431,14 +416,12 @@ local function syncFromDiscord()
     end
 end
 
--- Vòng lặp quét Discord mỗi 2 giây
 task.spawn(function()
     while task.wait(2) do
         pcall(syncFromDiscord)
     end
 end)
 
--- 5. BẮT CHAT REALTIME TỪ ROBLOX
 local processMsgs = {}
 if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
     TextChatService.MessageReceived:Connect(function(textChatMessage)
@@ -454,7 +437,6 @@ if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
     end)
 end
 
--- 6. GỬI TIN NHẮN TỪ ROBLOX
 local function sendMessage()
     local text = WorldChatInput.Text
     if text ~= "" then
@@ -476,5 +458,3 @@ WorldChatToggleBtn.MouseButton1Click:Connect(function()
         WorldChatNotifyFrame.Visible = false
     end
 end)
-
-print("--> Updated: Copy Button (📋) added to each chat line!")
